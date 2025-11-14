@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://todo-list-csu0.onrender.com/api';
+// HARDCODE the API URL for now
+const API_URL = 'https://todo-list-csu0.onrender.com/api';
 
 function App() {
   const [todos, setTodos] = useState([]);
@@ -10,9 +11,6 @@ function App() {
   const [description, setDescription] = useState('');
   const [editingTodo, setEditingTodo] = useState(null);
   const [filter, setFilter] = useState('all');
-
-  // Add this debug line
-  console.log('API URL:', import.meta.env.VITE_API_URL);
 
   useEffect(() => {
     fetchTodos();
@@ -108,7 +106,7 @@ function App() {
     <div className="app">
       <div className="container">
         <header className="header">
-          <h1>To Do List</h1>
+          <h1>MERN Todo List</h1>
           <p>{activeCount} tasks remaining</p>
         </header>
 
@@ -136,7 +134,7 @@ function App() {
                 </button>
               </>
             ) : (
-              <button type="submit" className="btn btn-primary">Add To Do</button>
+              <button type="submit" className="btn btn-primary">Add Todo</button>
             )}
           </div>
         </form>
