@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -9,58 +8,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/todolist', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  ssl: true,
-  tls: true,
-  tlsAllowInvalidCertificates: false,
-  retryWrites: true,
-  w: 'majority'
-}).then(() => {
-  console.log('✅ Connected to MongoDB successfully!');
-}).catch(err => {
-  console.log('❌ MongoDB connection error:', err);
-});
-
-// Check connection
-mongoose.connection.on('connected', () => {
-  console.log('Connected to MongoDB');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.log('MongoDB connection error:', err);
-});
-
-// Todo Schema
-const todoSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    default: '',
-  },
-  completed: {
-    type: Boolean,
-    default: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
-
-const Todo = mongoose.model('Todo', todoSchema);
+// In-memory storage (replace with MongoDB later)
+let todos = [];
+let nextId = 1;
 
 // Routes
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    message: 'Server is running!',
+    database: 'in-memory',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Get all todos
 app.get('/api/todos', async (req, res) => {
   try {
-    const todos = await Todo.find().sort({ createdAt: -1 });
     res.json(todos);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -70,13 +35,16 @@ app.get('/api/todos', async (req, res) => {
 // Create a new todo
 app.post('/api/todos', async (req, res) => {
   try {
-    const todo = new Todo({
+    const todo = {
+      _id: nextId++,
       title: req.body.title,
-      description: req.body.description,
-    });
+      description: req.body.description || '',
+      completed: false,
+      createdAt: new Date()
+    };
     
-    const newTodo = await todo.save();
-    res.status(201).json(newTodo);
+    todos.unshift(todo); // Add to beginning
+    res.status(201).json(todo);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -85,21 +53,21 @@ app.post('/api/todos', async (req, res) => {
 // Update a todo
 app.put('/api/todos/:id', async (req, res) => {
   try {
-    const todo = await Todo.findByIdAndUpdate(
-      req.params.id,
-      {
-        title: req.body.title,
-        description: req.body.description,
-        completed: req.body.completed,
-      },
-      { new: true }
-    );
+    const id = req.params.id;
+    const todoIndex = todos.findIndex(todo => todo._id == id);
     
-    if (!todo) {
+    if (todoIndex === -1) {
       return res.status(404).json({ message: 'Todo not found' });
     }
     
-    res.json(todo);
+    todos[todoIndex] = {
+      ...todos[todoIndex],
+      title: req.body.title,
+      description: req.body.description,
+      completed: req.body.completed
+    };
+    
+    res.json(todos[todoIndex]);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -108,12 +76,14 @@ app.put('/api/todos/:id', async (req, res) => {
 // Delete a todo
 app.delete('/api/todos/:id', async (req, res) => {
   try {
-    const todo = await Todo.findByIdAndDelete(req.params.id);
+    const id = req.params.id;
+    const todoIndex = todos.findIndex(todo => todo._id == id);
     
-    if (!todo) {
+    if (todoIndex === -1) {
       return res.status(404).json({ message: 'Todo not found' });
     }
     
+    todos.splice(todoIndex, 1);
     res.json({ message: 'Todo deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -123,27 +93,22 @@ app.delete('/api/todos/:id', async (req, res) => {
 // Toggle todo completion
 app.patch('/api/todos/:id/toggle', async (req, res) => {
   try {
-    const todo = await Todo.findById(req.params.id);
+    const id = req.params.id;
+    const todoIndex = todos.findIndex(todo => todo._id == id);
     
-    if (!todo) {
+    if (todoIndex === -1) {
       return res.status(404).json({ message: 'Todo not found' });
     }
     
-    todo.completed = !todo.completed;
-    const updatedTodo = await todo.save();
-    
-    res.json(updatedTodo);
+    todos[todoIndex].completed = !todos[todoIndex].completed;
+    res.json(todos[todoIndex]);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ message: 'Server is running!' });
-});
-
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log('Using in-memory storage');
 });
