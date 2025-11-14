@@ -13,6 +13,15 @@ app.use(express.json());
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/todolist', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  ssl: true,
+  tls: true,
+  tlsAllowInvalidCertificates: false,
+  retryWrites: true,
+  w: 'majority'
+}).then(() => {
+  console.log('✅ Connected to MongoDB successfully!');
+}).catch(err => {
+  console.log('❌ MongoDB connection error:', err);
 });
 
 // Check connection
