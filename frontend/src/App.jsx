@@ -11,6 +11,9 @@ function App() {
   const [editingTodo, setEditingTodo] = useState(null);
   const [filter, setFilter] = useState('all');
 
+  // Add this debug line
+  console.log('API URL:', import.meta.env.VITE_API_URL);
+
   useEffect(() => {
     fetchTodos();
   }, []);
